@@ -55,6 +55,19 @@ services:
       redis:
         condition: service_started
 
+  frontend:
+    build: .
+    command: streamlit run app/frontend.py --server.port 8501 --server.address 0.0.0.0
+    volumes:
+      - .:/app
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://web:8000
+    depends_on:
+      web:
+        condition: service_started
+
 volumes:
   postgres_data:
   ollama_data:
