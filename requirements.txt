@@ -14,3 +14,7 @@ langchain-text-splitters
 langchain-openai
 pgvector
 sentence-transformers
+pytest
+httpx
+streamlit
+extra-streamlit-components

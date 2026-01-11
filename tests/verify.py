@@ -1,0 +1,69 @@
+import httpx
+import asyncio
+import sys
+
+BASE_URL = "http://localhost:8000"
+
+async def test_health():
+    print("Testing / ...", end=" ")
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(f"{BASE_URL}/")
+            if resp.status_code == 200:
+                print("OK")
+                return True
+            else:
+                print(f"FAILED ({resp.status_code})")
+                return False
+        except Exception as e:
+            print(f"ERROR: {e}")
+            return False
+
+async def test_scrape():
+    print("Testing POST /scrape ...", end=" ")
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.post(f"{BASE_URL}/scrape", json={"url": "https://example.com"})
+            if resp.status_code == 200:
+                data = resp.json()
+                if "task_id" in data:
+                    print(f"OK (Task ID: {data['task_id']})")
+                    return True
+            print(f"FAILED (Response: {resp.text})")
+            return False
+        except Exception as e:
+            print(f"ERROR: {e}")
+            return False
+
+async def test_chat_validation():
+    print("Testing POST /chat validation ...", end=" ")
+    async with httpx.AsyncClient() as client:
+        try:
+            # Empty query should fail validation (422)
+            resp = await client.post(f"{BASE_URL}/chat", json={})
+            if resp.status_code == 422:
+                print("OK (Correctly rejected)")
+                return True
+            print(f"FAILED (Expected 422, got {resp.status_code})")
+            return False
+        except Exception as e:
+            print(f"ERROR: {e}")
+            return False
+
+async def main():
+    print(f"Running automated tests against {BASE_URL}\n")
+    results = [
+        await test_health(),
+        await test_scrape(),
+        await test_chat_validation()
+    ]
+    
+    if all(results):
+        print("\nAll tests passed! ✅")
+        sys.exit(0)
+    else:
+        print("\nSome tests failed. ❌")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    asyncio.run(main())
