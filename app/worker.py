@@ -2,7 +2,7 @@ from celery import Celery
 import requests
 from bs4 import BeautifulSoup
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.settings import settings

@@ -8,9 +8,9 @@ pydantic-settings==2.2.1
 psycopg2-binary==2.9.9
 beautifulsoup4==4.12.3
 requests==2.31.0
-langchain==0.1.0
-langchain-community==0.0.10
-langchain-postgres==0.0.1
-langchain-huggingface
-pgvector==0.2.4
-sentence-transformers==2.3.1
+langchain
+langchain-community
+langchain-text-splitters
+langchain-openai
+pgvector
+sentence-transformers

@@ -1,5 +1,5 @@
 from langchain_community.chat_models import ChatOllama
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from sqlalchemy import select, text
 from app.database import get_session
 from app.models import Document
