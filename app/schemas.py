@@ -6,3 +6,10 @@ class ScrapeRequest(BaseModel):
 class TaskResponse(BaseModel):
     task_id: str
     status: str
+
+class ChatRequest(BaseModel):
+    query: str
+
+class ChatResponse(BaseModel):
+    answer: str
+    sources: list[str]
