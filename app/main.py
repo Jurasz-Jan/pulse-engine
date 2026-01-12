@@ -5,8 +5,9 @@ from sqlmodel import select
 
 from app.database import init_db, get_session
 from app.models import Greeting
-from app.schemas import ScrapeRequest, TaskResponse
+from app.schemas import ScrapeRequest, TaskResponse, ChatRequest, ChatResponse
 from app.worker import scrape_url
+from app.rag import search_docs, generate_answer
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,6 +24,12 @@ async def root():
 async def scrape(request: ScrapeRequest):
     task = scrape_url.delay(request.url)
     return {"task_id": task.id, "status": "Processing"}
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest, session: AsyncSession = Depends(get_session)):
+    docs = await search_docs(session, request.query)
+    answer = await generate_answer(request.query, docs)
+    return {"answer": answer, "sources": [doc.content[:100] + "..." for doc in docs]}
 
 @app.post("/greetings")
 async def create_greeting(message: str, session: AsyncSession = Depends(get_session)):
