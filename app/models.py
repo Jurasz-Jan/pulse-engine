@@ -9,4 +9,5 @@ class Greeting(SQLModel, table=True):
 class Document(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     content: str
+    source: str = Field(default="unknown")
     embedding: List[float] = Field(sa_type=Vector(384)) # 384 dims for all-MiniLM-L6-v2

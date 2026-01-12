@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.database import init_db, get_session
-from app.models import Greeting
+from app.models import Greeting, Document
 from app.schemas import ScrapeRequest, TaskResponse, ChatRequest, ChatResponse
 from app.worker import scrape_url
 from app.rag import rag_flow
@@ -43,3 +43,17 @@ async def get_greetings(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(Greeting))
     greetings = result.scalars().all()
     return greetings
+
+@app.get("/sources")
+async def list_sources(session: AsyncSession = Depends(get_session)):
+    stmt = select(Document.source).distinct()
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+@app.delete("/sources")
+async def delete_source(source: str, session: AsyncSession = Depends(get_session)):
+    from sqlalchemy import delete
+    stmt = delete(Document).where(Document.source == source)
+    await session.execute(stmt)
+    await session.commit()
+    return {"message": f"Deleted all documents from {source}"}

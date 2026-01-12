@@ -51,7 +51,7 @@ def scrape_url(url: str):
         with SessionLocal() as session:
             for doc in docs:
                 embedding = embeddings_model.embed_query(doc.page_content)
-                db_doc = Document(content=doc.page_content, embedding=embedding)
+                db_doc = Document(content=doc.page_content, embedding=embedding, source=url)
                 session.add(db_doc)
             session.commit()
             
