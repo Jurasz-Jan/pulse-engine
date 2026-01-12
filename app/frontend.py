@@ -13,6 +13,20 @@ st.caption("Local Document-based Knowledge Engine")
 
 # Sidebar - Ingestion
 with st.sidebar:
+    st.header("System Status")
+    if st.button("Check Status"):
+        try:
+            status_res = requests.get(f"{API_URL}/tasks/status")
+            if status_res.status_code == 200:
+                status_data = status_res.json()
+                st.metric("Active Tasks", status_data["active"])
+                st.metric("Queued Tasks", status_data["queued"])
+            else:
+                st.error("Could not fetch status")
+        except:
+             st.warning("Worker unavailable")
+    st.divider()
+
     url_input = st.text_input("Ingest URL", placeholder="https://example.com")
     
     if st.button("Scrape & Embed"):
@@ -23,7 +37,11 @@ with st.sidebar:
                     if res.status_code == 200:
                         data = res.json()
                         st.success(f"Task Started! ID: {data['task_id']}")
-                        st.info("Check docker logs for progress.")
+                        st.info("Ingestion runs in the background. Please wait a moment and click 'Refresh Sources' below to see the new document.")
+                        
+                        # Invalidate cache so the user sees the new source (eventually)
+                        if "sources" in st.session_state:
+                            del st.session_state["sources"]
                     else:
                         st.error(f"Error: {res.status_code}")
                 except Exception as e:

@@ -6,7 +6,7 @@ from sqlmodel import select
 from app.database import init_db, get_session
 from app.models import Greeting, Document
 from app.schemas import ScrapeRequest, TaskResponse, ChatRequest, ChatResponse
-from app.worker import scrape_url
+from app.worker import scrape_url, celery_app
 from app.rag import rag_flow
 
 @asynccontextmanager
@@ -15,6 +15,18 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+@app.get("/tasks/status")
+async def get_task_status():
+    i = celery_app.control.inspect()
+    # If no workers are running, i.active() returns None
+    active = i.active() or {}
+    reserved = i.reserved() or {}
+    
+    total_active = sum(len(tasks) for tasks in active.values())
+    total_queued = sum(len(tasks) for tasks in reserved.values())
+    
+    return {"active": total_active, "queued": total_queued}
 
 @app.get("/")
 async def root():
