@@ -7,6 +7,14 @@ class TaskResponse(BaseModel):
     task_id: str
     status: str
 
+class JobResponse(BaseModel):
+    id: str
+    url: str
+    status: str
+    created_at: str
+    finished_at: str | None
+    result: str | None
+
 class ChatRequest(BaseModel):
     query: str
 

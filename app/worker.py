@@ -6,7 +6,10 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.settings import settings
-from app.models import Document
+from datetime import datetime
+from app.models import Document, Job
+
+# ... (imports)
 
 celery_app = Celery(
     "worker",
@@ -22,9 +25,17 @@ sync_db_url = settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql")
 engine = create_engine(sync_db_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-@celery_app.task
-def scrape_url(url: str):
-    print(f"Scraping {url}...")
+@celery_app.task(bind=True)
+def scrape_url(self, url: str):
+    job_id = self.request.id
+    print(f"Processing job {job_id} for {url}...")
+    
+    with SessionLocal() as session:
+        job = session.get(Job, job_id)
+        if job:
+            job.status = "PROCESSING"
+            session.commit()
+    
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
@@ -53,6 +64,14 @@ def scrape_url(url: str):
                 embedding = embeddings_model.embed_query(doc.page_content)
                 db_doc = Document(content=doc.page_content, embedding=embedding, source=url)
                 session.add(db_doc)
+            
+            # Update job success
+            job = session.get(Job, job_id)
+            if job:
+                job.status = "COMPLETED"
+                job.finished_at = datetime.utcnow().isoformat()
+                job.result = f"Ingested {len(docs)} chunks"
+                
             session.commit()
             
         print(f"Ingestion complete for {url}.")
@@ -60,4 +79,11 @@ def scrape_url(url: str):
         
     except Exception as e:
         print(f"Error scraping {url}: {e}")
+        with SessionLocal() as session:
+            job = session.get(Job, job_id)
+            if job:
+                job.status = "FAILED"
+                job.finished_at = datetime.utcnow().isoformat()
+                job.result = str(e)
+            session.commit()
         return f"Error: {e}"
