@@ -74,13 +74,51 @@ async def test_vague_query():
             print(f"ERROR: {e}")
             return False
 
+async def test_sources():
+    print("Testing /sources endpoint ...", end=" ")
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            # 1. Trigger ingest of a unique URL for testing
+            test_url = "https://example.com/test-source"
+            await client.post(f"{BASE_URL}/scrape", json={"url": test_url})
+            
+            # Wait briefly for worker to pick it up (basic sleep, ideally we'd poll)
+            await asyncio.sleep(2)
+            
+            # 2. List sources
+            resp = await client.get(f"{BASE_URL}/sources")
+            if resp.status_code != 200:
+                 print(f"FAILED (List status {resp.status_code})")
+                 return False
+            
+            sources = resp.json()
+            # Note: ingestion might take longer, so we check if endpoint lists *anything* or if our url is there
+            # For robustness in simple test, we just check 200 OK and list format
+            if not isinstance(sources, list):
+                 print(f"FAILED (Expected list, got {type(sources)})")
+                 return False
+                 
+            # 3. Delete the source (even if not fully ingested, it should handle it or we verify the call works)
+            resp = await client.delete(f"{BASE_URL}/sources", params={"source": test_url})
+            if resp.status_code == 200:
+                print("OK")
+                return True
+            else:
+                 print(f"FAILED (Delete status {resp.status_code})")
+                 return False
+
+        except Exception as e:
+            print(f"ERROR: {e}")
+            return False
+
 async def main():
     print(f"Running automated tests against {BASE_URL}\n")
     results = [
         await test_health(),
         await test_scrape(),
         await test_chat_validation(),
-        await test_vague_query()
+        await test_vague_query(),
+        await test_sources()
     ]
     
     if all(results):
