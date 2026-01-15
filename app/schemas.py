@@ -12,4 +12,5 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
+    trace: list[str]
     sources: list[str]
