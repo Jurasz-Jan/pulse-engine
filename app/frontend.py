@@ -9,11 +9,10 @@ API_URL = "http://web:8000"
 st.set_page_config(page_title="Pulse - AI Knowledge Engine", layout="wide")
 
 st.title("Pulse 🧠")
-st.caption("Self-Healing Knowledge Engine")
+st.caption("Local Document-based Knowledge Engine")
 
 # Sidebar - Ingestion
 with st.sidebar:
-    st.header("Knowledge Base")
     url_input = st.text_input("Ingest URL", placeholder="https://example.com")
     
     if st.button("Scrape & Embed"):
@@ -29,6 +28,47 @@ with st.sidebar:
                         st.error(f"Error: {res.status_code}")
                 except Exception as e:
                     st.error(f"Connection Error: {e}")
+
+    st.divider()
+    st.header("Manage Documents")
+    
+    # Refresh button
+    if st.button("Refresh Sources"):
+        try:
+             res = requests.get(f"{API_URL}/sources")
+             if res.status_code == 200:
+                 st.session_state.sources = res.json()
+             else:
+                 st.error("Failed to fetch sources")
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+    # Initial fetch if not present
+    if "sources" not in st.session_state:
+        try:
+             res = requests.get(f"{API_URL}/sources")
+             if res.status_code == 200:
+                 st.session_state.sources = res.json()
+        except:
+             pass
+
+    # Display sources
+    if "sources" in st.session_state and st.session_state.sources:
+        for src in st.session_state.sources:
+            col1, col2 = st.columns([3, 1])
+            col1.write(src)
+            if col2.button("Delete", key=src):
+                try:
+                    res = requests.delete(f"{API_URL}/sources", params={"source": src})
+                    if res.status_code == 200:
+                        st.success(f"Deleted {src}")
+                        # Remove from local state
+                        st.session_state.sources.remove(src)
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Error: {e}")
+    else:
+        st.info("No sources found.")
 
 # Main - Chat
 st.header("Chat with your Data")
