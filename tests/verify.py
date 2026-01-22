@@ -111,6 +111,26 @@ async def test_sources():
             print(f"ERROR: {e}")
             return False
 
+async def test_task_status():
+    print("Testing /tasks/status endpoint ...", end=" ")
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(f"{BASE_URL}/tasks/status")
+            if resp.status_code == 200:
+                data = resp.json()
+                if "active" in data and "queued" in data:
+                     print(f"OK (Active: {data['active']}, Queued: {data['queued']})")
+                     return True
+                else:
+                     print(f"FAILED (Unexpected response structure: {data})")
+                     return False
+            else:
+                 print(f"FAILED (Status {resp.status_code})")
+                 return False
+        except Exception as e:
+            print(f"ERROR: {e}")
+            return False
+
 async def main():
     print(f"Running automated tests against {BASE_URL}\n")
     results = [
@@ -118,7 +138,8 @@ async def main():
         await test_scrape(),
         await test_chat_validation(),
         await test_vague_query(),
-        await test_sources()
+        await test_sources(),
+        await test_task_status()
     ]
     
     if all(results):
