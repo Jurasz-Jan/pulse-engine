@@ -1,65 +1,116 @@
-# Pulse: Self-Healing Knowledge Engine
+# Pulse
 
-Pulse is a local RAG (Retrieval-Augmented Generation) system designed for automated knowledge ingestion and semantic retrieval. It orchestrates asynchronous scraping, vector embedding, and LLM inference to provide a self-hosted knowledge base.
+![Python](https://img.shields.io/badge/python-3.11-blue.svg)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?logo=docker&logoColor=white)
+![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?logo=postgresql&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)
 
-## Architecture
+**Pulse** is a local-first RAG (Retrieval-Augmented Generation) engine. It manages async document ingestion, vector embeddings, and semantic search to power a self-healing knowledge base.
 
-The system follows a microservices architecture managed via Docker Compose:
+Built with **FastAPI**, **Celery**, **Redis**, and **pgvector**.
 
-*   **Ingestion Pipeline**: 
-    1.  **API Gateway**: Receives `POST /scrape` tasks.
-    2.  **Task Queue (Celery + Redis)**: Asynchronously processes URLs to prevent request blocking.
-    3.  **Worker**: Scrapes content, chunks text, and computes embeddings via Ollama.
-    4.  **Vector Store (pgvector)**: Stores high-dimensional embeddings for semantic search.
-*   **Retrieval & Inference**:
-    1.  **Query**: `POST /chat` receives user input.
-    2.  **Vector Search**: Computes cosine similarity against stored embeddings to retrieve relevant chunks.
-    3.  **Context Construction**: Injects retrieved chunks into the LLM context window.
-    4.  **Generation**: Ollama generates the final response.
+## ⚡ Quick Start
 
-## Technical Stack
+**Prerequisites**: [Docker Compose](https://docs.docker.com/compose/) and a running [Ollama](https://ollama.ai/) instance.
 
-*   **Core**: Python 3.11+, FastAPI (Async).
-*   **Vector Database**: PostgreSQL 16 with `pgvector` extension.
-*   **Task Queue**: Celery 5.3 with Redis 7 broker.
-*   **Inference**: Ollama (Local LLM runtime).
-*   **Orchestration**: LangChain.
-*   **Frontend**: Streamlit.
+```bash
+# 1. Clone
+git clone <repo_url>
+cd pulse
 
-## API Reference
+# 2. Start Services
+docker-compose up --build -d
 
-### Endpoints
+# 3. Interface
+# Frontend: http://localhost:8501
+# API:      http://localhost:8000/docs
+```
 
-| Method | Endpoint | Description | Payload |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/scrape` | Enqueue URL for ingestion | `{"url": "string"}` |
-| `POST` | `/chat` | Query the knowledge base | `{"query": "string"}` |
-| `GET` | `/sources` | List ingested domains | - |
-| `DELETE` | `/sources` | Remove all vectors for a source | `?source=string` |
-| `GET` | `/tasks/status` | Monitor Celery queue metrics | - |
+## 🏗 Architecture
 
-## Deployment
+The system uses a worker-queue pattern to handle expensive scraping and embedding tasks without blocking the request loop.
 
-### Prerequisites
-*   Docker & Docker Compose
-*   Ollama (running locally or networked) / Model pulled (e.g., `ollama pull mistral`)
+```mermaid
+graph LR
+    Client -->|HTTP POST| API[FastAPI]
+    API -->|Push Task| Redis
+    Redis -->|Pop Task| Worker[Celery Worker]
+    Worker -->|Scrape| Internet
+    Worker -->|Embed| Ollama
+    Worker -->|Write Vector| DB[(Postgres 16)]
+    
+    Client -->|Query| API
+    API -->|Search| DB
+    API -->|Context| Ollama
+```
 
-### Setup
+### Core Components
 
-1.  **Clone & Build**:
+- **`app/worker.py`**: Background worker. Handles HTML parsing (`BeautifulSoup`), text splitting (`RecursiveCharacterTextSplitter`), and embedding generation.
+- **`app/main.py`**: Async API gateway.
+- **`app/rag.py`**: Retrieval logic. Performs cosine similarity search on the `document` table and builds LLM prompts.
+- **Vector Store**: Postgres 16 with `pgvector`. Stores 1536d embeddings (compatible with `nomic-embed-text` or `llama2`).
+
+## 🛠 API Usage
+
+**1. Ingest URL**
+Triggers a background job. Returns a Task ID immediately.
+```bash
+curl -X POST "http://localhost:8000/scrape" \
+     -H "Content-Type: application/json" \
+     -d '{"url": "https://fastapi.tiangolo.com/async/"}'
+```
+
+**2. Chat with Data**
+Queries the indexed knowledge base.
+```bash
+curl -X POST "http://localhost:8000/chat" \
+     -H "Content-Type: application/json" \
+     -d '{"query": "How does async/await work in Python?"}'
+```
+
+## 📦 Project Structure
+
+```text
+.
+├── app/
+│   ├── worker.py     # Celery tasks (Scraping/Embedding)
+│   ├── rag.py        # RAG pipeline implementation
+│   ├── frontend.py   # Streamlit UI
+│   ├── database.py   # Async SQLAlchemy setup
+│   └── models.py     # SQLModel schemas
+├── docker-compose.yml
+└── requirements.txt
+```
+
+## 🔧 Local Development
+
+To run the stack manually (without Docker for the app):
+
+1.  **Start Infrastructure**:
     ```bash
-    git clone <repo>
-    docker-compose up --build
+    docker-compose up db redis -d
+    ```
+2.  **Environment Setup**:
+    ```bash
+    virtualenv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    ```
+3.  **Run Worker**:
+    ```bash
+    # Requires local Redis/PG connection env vars
+    export DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/pulse"
+    export REDIS_URL="redis://localhost:6379/0"
+    celery -A app.worker.celery_app worker --loglevel=info
+    ```
+4.  **Run API**:
+    ```bash
+    uvicorn app.main:app --reload
     ```
 
-2.  **Services**:
-    *   **Frontend**: [http://localhost:8501](http://localhost:8501)
-    *   **API**: [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI)
-    *   **Redis**: [localhost:6379](localhost:6379)
-    *   **Postgres**: [localhost:5432](localhost:5432)
+## Roadmap
 
-### Configuration
-Environment variables are defined in `docker-compose.yml`:
-*   `DATABASE_URL`: Postgres connection string.
-*   `REDIS_URL`: Celery broker URL.
-*   `API_URL`: Frontend-to-Backend communication channel.
+- [ ] Rate limiting for scraper.
+- [ ] Websocket support for real-time task progress.
+- [ ] PDF/Text file upload support.
