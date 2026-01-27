@@ -5,11 +5,11 @@
 ![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?logo=postgresql&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)
 
-**Pulse** is a local-first RAG (Retrieval-Augmented Generation) engine. It manages async document ingestion, vector embeddings, and semantic search to power a self-healing knowledge base.
+**Pulse** is a local-first RAG (Retrieval-Augmented Generation) engine. It manages async document ingestion, vector embeddings, and semantic search to power a knowledge base.
 
 Built with **FastAPI**, **Celery**, **Redis**, and **pgvector**.
 
-## ⚡ Quick Start
+## Quick Start
 
 **Prerequisites**: [Docker Compose](https://docs.docker.com/compose/) and a running [Ollama](https://ollama.ai/) instance.
 
@@ -26,7 +26,7 @@ docker-compose up --build -d
 # API:      http://localhost:8000/docs
 ```
 
-## 🏗 Architecture
+## Architecture
 
 The system uses a worker-queue pattern to handle expensive scraping and embedding tasks without blocking the request loop.
 
@@ -61,7 +61,7 @@ curl -X POST "http://localhost:8000/scrape" \
      -d '{"url": "https://fastapi.tiangolo.com/async/"}'
 ```
 
-**2. Chat with Data**
+**2. Chat**
 Queries the indexed knowledge base.
 ```bash
 curl -X POST "http://localhost:8000/chat" \
@@ -69,7 +69,7 @@ curl -X POST "http://localhost:8000/chat" \
      -d '{"query": "How does async/await work in Python?"}'
 ```
 
-## 📦 Project Structure
+## Project Structure
 
 ```text
 .
@@ -83,9 +83,10 @@ curl -X POST "http://localhost:8000/chat" \
 └── requirements.txt
 ```
 
-## 🔧 Local Development
+## Usage
 
-To run the stack manually (without Docker for the app):
+
+To run the app locally:
 
 1.  **Start Infrastructure**:
     ```bash
@@ -111,6 +112,5 @@ To run the stack manually (without Docker for the app):
 
 ## Roadmap
 
-- [ ] Rate limiting for scraper.
-- [ ] Websocket support for real-time task progress.
+- [ ] Scraper works unpredictably and needs rate limiting.
 - [ ] PDF/Text file upload support.
