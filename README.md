@@ -28,7 +28,6 @@ docker-compose up --build -d
 
 ## Architecture
 
-The system uses a worker-queue pattern to handle expensive scraping and embedding tasks without blocking the request loop.
 
 ```mermaid
 graph LR
