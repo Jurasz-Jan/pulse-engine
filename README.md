@@ -30,17 +30,34 @@ docker-compose up --build -d
 
 
 ```mermaid
-graph LR
-    Client -->|HTTP POST| API[FastAPI]
-    API -->|Push Task| Redis
-    Redis -->|Pop Task| Worker[Celery Worker]
-    Worker -->|Scrape| Internet
+graph TD
+    subgraph Frontend
+        UI[Streamlit UI]
+    end
+
+    subgraph "Application Logic"
+        API[FastAPI]
+        Worker[Celery Worker]
+    end
+
+    subgraph Infrastructure
+        Redis[Redis]
+        DB[(Postgres/pgvector)]
+        Ollama[Ollama LLM]
+    end
+
+    %% Ingestion
+    UI -->|POST /scrape| API
+    API -->|Enqueue| Redis
+    Redis -->|Task| Worker
+    Worker -->|Scrape| Internet((Internet))
     Worker -->|Embed| Ollama
-    Worker -->|Write Vector| DB[(Postgres 16)]
-    
-    Client -->|Query| API
-    API -->|Search| DB
-    API -->|Context| Ollama
+    Worker -->|Store Vectors| DB
+
+    %% Query
+    UI -->|POST /chat| API
+    API -->|Similarity Search| DB
+    API -->|Generate Response| Ollama
 ```
 
 ### Core Components
@@ -50,7 +67,7 @@ graph LR
 - **`app/rag.py`**: Retrieval logic. Performs cosine similarity search on the `document` table and builds LLM prompts.
 - **Vector Store**: Postgres 16 with `pgvector`. Stores 1536d embeddings (compatible with `nomic-embed-text` or `llama2`).
 
-## 🛠 API Usage
+## API Usage
 
 **1. Ingest URL**
 Triggers a background job. Returns a Task ID immediately.
