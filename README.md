@@ -9,6 +9,9 @@
 
 Built with **FastAPI**, **Celery**, **Redis**, and **pgvector**.
 
+<img width="2551" height="1324" alt="image" src="https://github.com/user-attachments/assets/658e8730-1781-4fc1-a0f3-b91a24095072" />
+
+
 ## Quick Start
 
 **Prerequisites**: [Docker Compose](https://docs.docker.com/compose/) and a running [Ollama](https://ollama.ai/) instance.
