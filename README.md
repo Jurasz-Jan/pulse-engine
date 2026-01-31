@@ -14,7 +14,7 @@ Built with **FastAPI**, **Celery**, **Redis**, and **pgvector**.
 
 ## Quick Start
 
-**Prerequisites**: [Docker Compose](https://docs.docker.com/compose/) and a running [Ollama](https://ollama.ai/) instance.
+**Prerequisites**: [Docker Compose](https://docs.docker.com/compose/)
 
 ```bash
 # 1. Clone
