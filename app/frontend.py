@@ -13,18 +13,34 @@ st.caption("Local Document-based Knowledge Engine")
 
 # Sidebar - Ingestion
 with st.sidebar:
-    st.header("System Status")
-    if st.button("Check Status"):
-        try:
-            status_res = requests.get(f"{API_URL}/tasks/status")
-            if status_res.status_code == 200:
-                status_data = status_res.json()
-                st.metric("Active Tasks", status_data["active"])
-                st.metric("Queued Tasks", status_data["queued"])
+    st.header("Job History")
+    if st.button("Refresh Jobs"):
+        st.session_state.last_refresh = time.time()
+        
+    try:
+        jobs_res = requests.get(f"{API_URL}/jobs")
+        if jobs_res.status_code == 200:
+            jobs = jobs_res.json()
+            if jobs:
+                # Simple display
+                for job in jobs:
+                    status_color = "🟢" if job['status'] == "COMPLETED" else "🔴" if job['status'] == "FAILED" else "md"
+                    if job['status'] == "PENDING": status_color = "⚪"
+                    if job['status'] == "PROCESSING": status_color = "aaa"
+                    
+                    with st.expander(f"{status_color} {job['url'][:30]}...", expanded=False):
+                        st.write(f"**Status:** {job['status']}")
+                        st.write(f"**Created:** {job['created_at']}")
+                        if job['finished_at']:
+                            st.write(f"**Finished:** {job['finished_at']}")
+                        if job['result']:
+                            st.caption(f"Result: {job['result']}")
             else:
-                st.error("Could not fetch status")
-        except:
-             st.warning("Worker unavailable")
+                st.info("No jobs found")
+        else:
+            st.error("Could not fetch jobs")
+    except Exception as e:
+         st.warning(f"Worker unavailable? {e}")
     st.divider()
 
     url_input = st.text_input("Ingest URL", placeholder="https://example.com")
