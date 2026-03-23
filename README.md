@@ -130,6 +130,6 @@ To run the app locally:
     ```
 
 ## Roadmap
-
+- [ ] Invalid task statuses(stuck at PENDING)
 - [ ] Scraper works unpredictably and needs rate limiting.
 - [ ] PDF/Text file upload support.
